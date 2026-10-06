@@ -24,16 +24,18 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install System Dependencies
+      - name: Fix Apt & Install System Dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y \
+          sudo rm -rf /var/lib/apt/lists/*
+          sudo apt-get clean
+          sudo apt-get update --fix-missing
+          sudo apt-get install -y --no-install-recommends \
             build-essential \
             git \
             ffmpeg \
             libsdl2-dev \
             libsdl2-image-dev \
-            libsdl2-mixin-dev \
+            libsdl2-mixer-dev \
             libsdl2-ttf-dev \
             libportmidi-dev \
             libswscale-dev \
@@ -52,15 +54,14 @@ jobs:
 
       - name: Install Python Packaging Tools
         run: |
-          pip install --upgrade pip setuptools
+          python -m pip install --upgrade pip setuptools wheel
           pip install "cython<3.0.0" buildozer
 
       - name: Build APK with Buildozer
         run: |
-          # Create buildozer.spec
           buildozer init
           
-          # Configure spec options
+          # Update config spec
           sed -i 's/requirements = python3,kivy/requirements = python3,pygame/g' buildozer.spec
           sed -i 's/orientation = portrait/orientation = landscape/g' buildozer.spec
           sed -i 's/# android.accept_sdk_license = False/android.accept_sdk_license = True/g' buildozer.spec
@@ -68,7 +69,6 @@ jobs:
           sed -i 's/# android.minapi = 21/android.minapi = 21/g' buildozer.spec
           sed -i 's/# android.ndk = 25b/android.ndk = 25b/g' buildozer.spec
           
-          # Run buildozer with auto-accept flags
           yes | buildozer -v android debug
 
       - name: Upload APK Artifact
