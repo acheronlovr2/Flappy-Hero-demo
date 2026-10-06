@@ -7,7 +7,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
 
     steps:
       - name: Checkout repository
@@ -24,17 +24,52 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install dependencies
+      - name: Install System Dependencies
         run: |
-          pip install --upgrade pip
-          pip install buildozer cython==0.29.33
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            git \
+            ffmpeg \
+            libsdl2-dev \
+            libsdl2-image-dev \
+            libsdl2-mixin-dev \
+            libsdl2-ttf-dev \
+            libportmidi-dev \
+            libswscale-dev \
+            libavformat-dev \
+            libavcodec-dev \
+            zlib1g-dev \
+            autoconf \
+            automake \
+            libtool \
+            pkg-config \
+            cmake \
+            openjdk-17-jdk \
+            ccache \
+            zip \
+            unzip
+
+      - name: Install Python Packaging Tools
+        run: |
+          pip install --upgrade pip setuptools
+          pip install "cython<3.0.0" buildozer
 
       - name: Build APK with Buildozer
         run: |
+          # Create buildozer.spec
           buildozer init
+          
+          # Configure spec options
           sed -i 's/requirements = python3,kivy/requirements = python3,pygame/g' buildozer.spec
           sed -i 's/orientation = portrait/orientation = landscape/g' buildozer.spec
-          buildozer -v android debug
+          sed -i 's/# android.accept_sdk_license = False/android.accept_sdk_license = True/g' buildozer.spec
+          sed -i 's/# android.api = 31/android.api = 33/g' buildozer.spec
+          sed -i 's/# android.minapi = 21/android.minapi = 21/g' buildozer.spec
+          sed -i 's/# android.ndk = 25b/android.ndk = 25b/g' buildozer.spec
+          
+          # Run buildozer with auto-accept flags
+          yes | buildozer -v android debug
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
